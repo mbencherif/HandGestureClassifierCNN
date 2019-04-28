@@ -4,6 +4,7 @@ from data import DataPipeline
 from model import FuseModel
 
 import os
+import sys
 import cv2
 import numpy as np
 import time
@@ -51,7 +52,7 @@ def get_top_k_accuracy(y_pred_logits, y_true, k=5, val=False):
     return (acc, acc_update_op), initializer
 
 
-def get_max_diff(y_pred_logits, y_true, val=False):
+def correct_pred_val(y_pred_logits, y_true, val=False):
     name_prefix = 'val_' if val else 'train_'
     y_pred = tf.nn.softmax(y_pred_logits, axis=-1, name='{}y_pred_softmax'.format(name_prefix))
     diff = tf.math.reduce_sum(tf.math.multiply(y_pred, y_true), axis=-1, name='reduce_sum_diff')
@@ -131,7 +132,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
         'accuracy': get_accuracy(prediction_placeholder, y_actual_placeholder),
         'top_2_accuracy': get_top_k_accuracy(prediction_placeholder, y_actual_placeholder, k=2),
         'top_5_accuracy': get_top_k_accuracy(prediction_placeholder, y_actual_placeholder, k=5),
-        'max_diff': get_max_diff(prediction_placeholder, y_actual_placeholder)
+        'correct_pred_val': correct_pred_val(prediction_placeholder, y_actual_placeholder)
     }
 
     for name, ((calc, update), reset) in metrics.items():
@@ -149,7 +150,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
         'accuracy': get_accuracy(prediction_placeholder, y_actual_placeholder, val=True),
         'top_2_accuracy': get_top_k_accuracy(prediction_placeholder, y_actual_placeholder, k=2, val=True),
         'top_5_accuracy': get_top_k_accuracy(prediction_placeholder, y_actual_placeholder, k=5, val=True),
-        'max_diff': get_max_diff(prediction_placeholder, y_actual_placeholder, val=True)
+        'correct_pred_val': correct_pred_val(prediction_placeholder, y_actual_placeholder, val=True)
     }
 
     for name, ((calc, update), reset) in val_metrics.items():
@@ -178,7 +179,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     sess.run(tf.global_variables_initializer())
 
     print('creating savers')
-    saver = tf.train.Saver(max_to_keep=10, keep_checkpoint_every_n_hours=2, reshape=True)
+    saver = tf.train.Saver(max_to_keep=5, keep_checkpoint_every_n_hours=2, reshape=True)
     last_save = tf.train.latest_checkpoint(save_dir)
     if last_save is None:
         print('found no previous save; will start fresh')
@@ -193,6 +194,21 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
         saver.restore(sess, last_save)
     save_location = os.path.join(save_dir, '{}.meta'.format(model_name))
     saver.export_meta_graph(save_location, clear_devices=True)
+
+    if 'Yuhan' not in data_location:
+        print('testing speed')
+        num_frames = 0
+        durr = 0
+        sess.run(data_set_init)
+        for _ in range(3):
+            feature, label = sess.run([dataset_feature, dataset_label])
+            images = feature['images']
+            flows = feature['flows']
+            num_frames += images.shape[1] * images.shape[0]
+            start_time = time.time()
+            sess.run(model_output, feed_dict={images_placeholder: images, flows_placeholder: flows})
+            durr += time.time() - start_time
+        print('processed {} frames in {} seconds; {:.01f} fps'.format(num_frames, durr, num_frames / durr))
 
     print('starting training')
     for epoch in range(start_epoch, start_epoch + epochs):
@@ -269,9 +285,14 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
 
 
 if __name__ == '__main__':
-    # data_location = '/Users/Yuhan'
-    data_location = '/home/yliu102199'
-    start_training(data_location=data_location, log_dir='log1', save_dir='saved_models', model_name='model_1',
-                   steps_per_epoch=20000, val_steps=64, start_epoch=0, epochs=1000, global_step=0,
+    print(sys.path)
+    for path in sys.path:
+        if '/Users/Yuhan' in path:
+            base_location = '/Users/Yuhan'
+            break
+    else:
+        base_location = '/home/yliu102199'
+    start_training(data_location=base_location, log_dir='log1', save_dir='saved_models', model_name='model_2',
+                   steps_per_epoch=20000, val_steps=32, start_epoch=0, epochs=1000, global_step=0,
                    summary_update_freq=30, val_freq=200, save_freq=600,
                    batch_size=4)

@@ -134,51 +134,45 @@ class BaseImageModel:
         conv1 = se_net(conv1, depth=384)
 
         # middle flow
-        # Inception-Resnext Block A
+        # Inception-Resnet Block A
         depth = 384
-        cardinality = 2
         conv2 = conv1
         for i in range(5):
             conv1 = Conv2D(depth, kernel_size=1, strides=1, padding='valid',
                            activity_regularizer=l2_reg, kernel_initializer=default_init,
                            name='block_A_base_{}'.format(i))(conv1)
 
-            cardinal_convs = list()
-            for j in range(cardinality):
-                conv2_1 = Conv2D(16, kernel_size=1, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_A_1x1_conv_{}_{}'.format(i, j))(conv2)
+            conv2_1 = Conv2D(128, kernel_size=1, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_A_1x1_conv_{}'.format(i))(conv2)
 
-                conv2_3 = Conv2D(16, kernel_size=1, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_A_3x3_pre_conv_{}_{}'.format(i, j))(conv2)
-                conv2_3 = Conv2D(16, kernel_size=3, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_A_3x3_conv_{}_{}'.format(i, j))(conv2_3)
+            conv2_3 = Conv2D(64, kernel_size=1, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_A_3x3_pre_conv_{}'.format(i))(conv2)
+            conv2_3 = Conv2D(128, kernel_size=3, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_A_3x3_conv_{}'.format(i))(conv2_3)
 
-                conv2_7 = Conv2D(16, kernel_size=1, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_A_7x7_pre_conv_1_{}_{}'.format(i, j))(conv2)
-                conv2_7 = Conv2D(24, kernel_size=3, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_A_7x7_pre_conv_2_{}_{}'.format(i, j))(conv2_7)
-                conv2_7 = Conv2D(48, kernel_size=3, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_A_7x7_conv{}_{}'.format(i, j))(conv2_7)
+            conv2_7 = Conv2D(32, kernel_size=1, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_A_7x7_pre_conv_1_{}'.format(i))(conv2)
+            conv2_7 = Conv2D(64, kernel_size=3, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_A_7x7_pre_conv_2_{}'.format(i))(conv2_7)
+            conv2_7 = Conv2D(128, kernel_size=3, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_A_7x7_conv_{}'.format(i))(conv2_7)
 
-                cardinal_conv = Concatenate()([conv2_1, conv2_3, conv2_7])
-                cardinal_conv = Conv2D(depth, kernel_size=1, strides=1, padding='same',
-                                       activation='linear', activity_regularizer=l2_reg,
-                                       kernel_initializer=default_init,
-                                       name='block_A_res_{}_{}'.format(i, j))(cardinal_conv)
-                cardinal_convs.append(cardinal_conv)
+            res_conv = Concatenate()([conv2_1, conv2_3, conv2_7])
+            res_conv = Conv2D(depth, kernel_size=1, strides=1, padding='same',
+                              activation='linear', kernel_initializer=default_init,
+                              name='block_A_res_conv_projection_{}'.format(i))(res_conv)
 
-            tmp = Add(name="block_A_add_{}".format(i))(cardinal_convs)
-            conv1 = Add(name="block_A_final_add_{}".format(i))([tmp, conv1])
+            conv1 = Add(name="block_A_final_add_{}".format(i))([res_conv, conv1])
             conv1 = se_net(conv1, depth=depth)
             conv2 = conv1
 
-        # Inception-Resnext Reduction A
+        # Inception-Resnet Reduction A
         conv2_pool = MaxPooling2D(2, strides=2, padding='valid', name='red_A_pool_2')(conv2)
         conv2_3 = Conv2D(depth, kernel_size=3, strides=2, padding='same',
                          activation='relu', kernel_initializer=default_init,
@@ -194,48 +188,42 @@ class BaseImageModel:
                          name='red_A_conv_7_factor_2')(conv2_7)
         conv2 = Concatenate()([conv2_pool, conv2_3, conv2_7])
 
-        # Inception-Resnext Block B
+        # Inception-Resnet Block B
         depth = 1024
-        cardinality = 4
         conv1 = conv2
         for i in range(5):
             conv1 = Conv2D(depth, kernel_size=1, strides=1, padding='valid',
                            activity_regularizer=l2_reg, kernel_initializer=default_init,
                            name='block_B_base_{}'.format(i))(conv1)
 
-            cardinal_convs = list()
-            for j in range(cardinality):
-                conv2_1 = Conv2D(48, kernel_size=1, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_B_1x1_conv_{}_{}'.format(i, j))(conv2)
+            conv2_1 = Conv2D(192, kernel_size=1, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_B_1x1_conv_{}'.format(i))(conv2)
 
-                conv2_7 = Conv2D(32, kernel_size=1, strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_B_7x7_pre_conv_1_{}_{}'.format(i, j))(conv2)
-                conv2_7 = Conv2D(40, kernel_size=[1, 7], strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_B_7x7_pre_conv_2_{}_{}'.format(i, j))(conv2_7)
-                conv2_7 = Conv2D(48, kernel_size=[7, 1], strides=1, padding='same',
-                                 activation='relu', kernel_initializer=default_init,
-                                 name='block_B_7x7_conv{}_{}'.format(i, j))(conv2_7)
+            conv2_7 = Conv2D(128, kernel_size=1, strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_B_7x7_pre_conv_1_{}'.format(i))(conv2)
+            conv2_7 = Conv2D(160, kernel_size=[1, 7], strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_B_7x7_pre_conv_2_{}'.format(i))(conv2_7)
+            conv2_7 = Conv2D(192, kernel_size=[7, 1], strides=1, padding='same',
+                             activation='relu', kernel_initializer=default_init,
+                             name='block_B_7x7_conv_{}'.format(i))(conv2_7)
 
-                cardinal_conv = Concatenate()([conv2_1, conv2_7])
-                cardinal_conv = Conv2D(depth, kernel_size=1, strides=1, padding='same',
-                                       activation='linear', activity_regularizer=l2_reg,
-                                       kernel_initializer=default_init,
-                                       name='block_B_res_{}_{}'.format(i, j))(cardinal_conv)
-                cardinal_convs.append(cardinal_conv)
+            res_conv = Concatenate()([conv2_1, conv2_7])
+            res_conv = Conv2D(depth, kernel_size=1, strides=1, padding='same',
+                              activation='linear', kernel_initializer=default_init,
+                              name='block_B_res_conv_projection_{}'.format(i))(res_conv)
 
-            tmp = Add(name="block_B_add_{}".format(i))(cardinal_convs)
-            conv1 = Add(name="block_B_final_add_{}".format(i))([tmp, conv1])
+            conv1 = Add(name="block_B_final_add_{}".format(i))([res_conv, conv1])
 
             conv1 = se_net(conv1, depth=depth)
             conv2 = conv1
 
-        # Inception-Resnext Reduction B
+        # Inception-Resnet Reduction B
         conv2_pool = MaxPooling2D(3, strides=2, padding='same', name='red_B_pool_2')(conv2)
         conv2_3_1 = Conv2D(256, kernel_size=1, strides=1, padding='same',
-                         activation='relu', kernel_initializer=default_init,
+                           activation='relu', kernel_initializer=default_init,
                            name='red_B_pre_conv_3_1')(conv2)
         conv2_3_1 = Conv2D(384, kernel_size=3, strides=2, padding='same',
                            activity_regularizer=l2_reg,
@@ -273,12 +261,12 @@ class BaseMotionModel:
         # motion frame processing
         # entry
         default_init = glorot_normal(seed=None)
-        conv1 = Conv2D(filters=4, kernel_size=3, padding='same',
+        conv1 = Conv2D(filters=32, kernel_size=3, padding='same',
                        activity_regularizer=l2(0.0005),
                        kernel_initializer=default_init,
                        use_bias=False,
                        name='motion_entry')(motion_input)
-        depths = [8, 8, 16, 64]
+        depths = [64, 128, 256, 512]
         pooling_layers = [True, True, True, True]
         activations = ['linear', 'linear', 'relu', 'relu']
         biases = [False, False, True, True]
@@ -286,7 +274,7 @@ class BaseMotionModel:
             conv1 = Conv2D(filters=depth, kernel_size=5, padding='same',
                            use_bias=bias, activation=activation,
                            kernel_initializer=default_init,
-                           activity_regularizer=l2(0.0005),
+                           activity_regularizer=l2(10**(-8)),
                            name='motion_conv_{}'.format(depth))(conv1)
             if pool:
                 conv1 = AveragePooling2D(pool_size=2, strides=2)(conv1)
