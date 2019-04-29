@@ -15,8 +15,6 @@ class FuseModel:
         self.motions_input = motions_input
         self.output_size = output_size
         self.batch_size = batch_size
-        self.single_frame_image = None
-        self.single_frame_motion = None
         self.summarize_weights = summarize_weights
         self.prediction = self.prediction(images_input, motions_input)
 
@@ -28,47 +26,48 @@ class FuseModel:
 
         images_input = tf.reshape(images_input, shape=[-1] + image_shape + [3])
         motions_input = tf.reshape(motions_input, shape=[-1] + image_shape + [2])
-        self.single_frame_image = BaseImageModel(images_input)
-        self.single_frame_motion = BaseMotionModel(motions_input)
 
-        fused = tf.concat([self.single_frame_image.prediction, self.single_frame_motion.prediction],
-                          axis=-1, name='image_motion_fuse')
+        images_input = Conv2D(filters=4, kernel_size=1, strides=1, padding='same',
+                              activation='linear', kernel_initializer=default_init,
+                              use_bias=False, name='images_pre_conv_1')(images_input)
+        motions_input = Conv2D(filters=4, kernel_size=1, strides=1, padding='same',
+                               activation='linear', kernel_initializer=default_init,
+                               use_bias=False, name='motions_pre_conv_2')(motions_input)
 
-        fused = Conv2D(filters=1024, kernel_size=1, strides=1, padding='valid', activation='relu',
-                       kernel_initializer=default_init, use_bias=True, name='image_motion_conv_fuse')(fused)
-        fused = MaxPooling2D(pool_size=(2, 2), strides=(2, 2))(fused)
+        frame = Concatenate()([images_input, motions_input])
+        fused = SingleFrameModel(frame)
+        fused = fused.prediction
+
+        fused = AveragePooling2D(2, strides=2, padding='valid', name='fused_pool')(fused)
 
         size = fused.shape[1] * fused.shape[2] * fused.shape[3]
         # flatten
-        fused = tf.reshape(fused, shape=[self.batch_size, -1, size], name='flatten')
-
-        lstm_input = Dense(2048, kernel_initializer=default_init, name='lstm_pre_process')(fused)
+        lstm_input = tf.reshape(fused, shape=[self.batch_size, -1, size], name='flatten')
+        lstm_input = Dense(1024, name='lstm_input_condense')(lstm_input)
 
         # [batch, frames, 2048]
         lstm1 = lstm_input
-        lstm_depths = [1024, 512]
-        return_sequences = [True, False]
+        lstm_depths = [1024, 1024, 512]
+        return_sequences = [True, True, False]
         for i, (depth, return_sequence) in enumerate(zip(lstm_depths, return_sequences)):
             lstm1 = LSTM(depth, stateful=True, return_sequences=return_sequence,
                          kernel_initializer=default_init,
                          name='lstm_{}'.format(i),
-                         implementation=2)(lstm1)
-
-        output = Dense(512, kernel_initializer=default_init, name="fc_last")(lstm1)
+                         implementation=1)(lstm1)
 
         logits = Dense(self.output_size, activation="linear", kernel_initializer=default_init,
-                       name="output")(output)
+                       name="output")(lstm1)
 
         return logits
 
 
-class BaseImageModel:
+class SingleFrameModel:
     def __init__(self, feature):
         self.input = feature
         self.prediction = self.prediction(feature)
 
     def prediction(self, image_input):
-        l2_reg = l2(10**(-9))
+        l2_reg = l2(10**(-10))
         default_init = glorot_normal(seed=None)
 
         def se_net(in_block, depth):
@@ -250,34 +249,3 @@ class BaseImageModel:
 
         # exit
         return conv2
-
-
-class BaseMotionModel:
-    def __init__(self, feature):
-        self.input = feature
-        self.prediction = self.prediction(feature)
-
-    def prediction(self, motion_input):
-        # motion frame processing
-        # entry
-        default_init = glorot_normal(seed=None)
-        conv1 = Conv2D(filters=32, kernel_size=3, padding='same',
-                       activity_regularizer=l2(0.0005),
-                       kernel_initializer=default_init,
-                       use_bias=False,
-                       name='motion_entry')(motion_input)
-        depths = [64, 128, 256, 512]
-        pooling_layers = [True, True, True, True]
-        activations = ['linear', 'linear', 'relu', 'relu']
-        biases = [False, False, True, True]
-        for pool, depth, activation, bias in zip(pooling_layers, depths, activations, biases):
-            conv1 = Conv2D(filters=depth, kernel_size=5, padding='same',
-                           use_bias=bias, activation=activation,
-                           kernel_initializer=default_init,
-                           activity_regularizer=l2(10**(-8)),
-                           name='motion_conv_{}'.format(depth))(conv1)
-            if pool:
-                conv1 = AveragePooling2D(pool_size=2, strides=2)(conv1)
-        conv1 = AveragePooling2D(pool_size=3, strides=(2, 2), padding='same')(conv1)
-
-        return conv1

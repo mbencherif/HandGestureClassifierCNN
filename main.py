@@ -26,9 +26,10 @@ def get_optimizer(loss, lr=0.001, opt='adam', **kwargs):
         'adam': tf.train.AdamOptimizer,
         'adagrad': tf.train.AdagradOptimizer,
         'gradient descent': tf.train.GradientDescentOptimizer,
-        'momentum': tf.train.MomentumOptimizer
+        'momentum': tf.train.MomentumOptimizer,
+        'rmsprop': tf.train.RMSPropOptimizer
     }
-    optimizer = optimizers[opt](learning_rate=lr, **kwargs)
+    optimizer = optimizers[opt.lower()](learning_rate=lr, **kwargs)
     train_op = optimizer.minimize(loss, name='optimizer_update_op')
     return train_op
 
@@ -120,7 +121,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     loss_op = get_loss(model_output, y_actual_placeholder)
 
     print('creating optimizers')
-    optimizer = get_optimizer(loss_op, lr=0.001, opt='adam')
+    optimizer = get_optimizer(loss_op, lr=0.001, opt='rmsprop')
 
     print('creating metrics')
     metric_calc_ops = list()
@@ -200,7 +201,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
         num_frames = 0
         durr = 0
         sess.run(data_set_init)
-        for _ in range(3):
+        for _ in range(8):
             feature, label = sess.run([dataset_feature, dataset_label])
             images = feature['images']
             flows = feature['flows']
@@ -292,7 +293,7 @@ if __name__ == '__main__':
             break
     else:
         base_location = '/home/yliu102199'
-    start_training(data_location=base_location, log_dir='log1', save_dir='saved_models', model_name='model_2',
+    start_training(data_location=base_location, log_dir='log', save_dir='saved_models', model_name='model_3',
                    steps_per_epoch=20000, val_steps=32, start_epoch=0, epochs=1000, global_step=0,
-                   summary_update_freq=30, val_freq=200, save_freq=600,
-                   batch_size=4)
+                   summary_update_freq=30, val_freq=200, save_freq=500,
+                   batch_size=2)
