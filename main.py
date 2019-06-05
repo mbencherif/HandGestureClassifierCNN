@@ -89,20 +89,28 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     save_dir = os.path.join(model_name, save_dir)
     log_dir = os.path.join(model_name, log_dir)
 
-    image_shape = [160, 160]
+    image_shape = [224, 224]
 
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
-    print('creating dataset pipeline')
-    d = DataPipeline(sess, image_shape, home_path=data_location)
-    num_classes = d.num_classes()
-    data_set_init, (dataset_feature, dataset_label) = get_dataset(d.generator, batch_size=batch_size)
-    val_dataset_feature, val_dataset_label = get_dataset(d.val_generator, batch_size=batch_size,
-                                                         val=True)
-    dataset_feature['images'].set_shape([batch_size, None] + image_shape + [3])
-    dataset_feature['flows'].set_shape([batch_size, None] + image_shape + [2])
-    val_dataset_feature['images'].set_shape([batch_size, None] + image_shape + [3])
-    val_dataset_feature['flows'].set_shape([batch_size, None] + image_shape + [2])
+    d = None
+    dataset_init = None
+    dataset_feature = None
+    dataset_label = None
+    try:
+        print('creating dataset pipeline')
+        d = DataPipeline(sess, image_shape, home_path=data_location)
+        num_classes = d.num_classes()
+        dataset_init, (dataset_feature, dataset_label) = get_dataset(d.generator, batch_size=batch_size)
+        val_dataset_feature, val_dataset_label = get_dataset(d.val_generator, batch_size=batch_size,
+                                                             val=True)
+        dataset_feature['images'].set_shape([batch_size, None] + image_shape + [3])
+        dataset_feature['flows'].set_shape([batch_size, None] + image_shape + [2])
+        val_dataset_feature['images'].set_shape([batch_size, None] + image_shape + [3])
+        val_dataset_feature['flows'].set_shape([batch_size, None] + image_shape + [2])
+    except FileNotFoundError:
+        print("Training files not found. Executing under fake dataset")
+        num_classes = 27
 
     print('creating placeholders')
     images_placeholder = tf.placeholder(tf.float32, shape=[batch_size, None] + image_shape + [3],
@@ -196,24 +204,27 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     save_location = os.path.join(save_dir, '{}.meta'.format(model_name))
     saver.export_meta_graph(save_location, clear_devices=True)
 
-    if 'Yuhan' not in data_location:
-        print('testing speed')
-        num_frames = 0
-        durr = 0
-        sess.run(data_set_init)
-        for _ in range(20):
-            feature, label = sess.run([dataset_feature, dataset_label])
-            images = feature['images']
-            flows = feature['flows']
-            num_frames += images.shape[1] * images.shape[0]
-            start_time = time.time()
-            sess.run(model_output, feed_dict={images_placeholder: images, flows_placeholder: flows})
-            durr += time.time() - start_time
-        print('processed {} frames in {} seconds; {:.01f} fps'.format(num_frames, durr, num_frames / durr))
+    if d is None:
+        print("Cannot train because we don't have the dataset")
+        exit(0)
+
+    print('testing speed')
+    num_frames = 0
+    durr = 0
+    sess.run(dataset_init)
+    for _ in range(20):
+        feature, label = sess.run([dataset_feature, dataset_label])
+        images = feature['images']
+        flows = feature['flows']
+        num_frames += images.shape[1] * images.shape[0]
+        start_time = time.time()
+        sess.run(model_output, feed_dict={images_placeholder: images, flows_placeholder: flows})
+        durr += time.time() - start_time
+    print('processed {} frames in {} seconds; {:.01f} fps'.format(num_frames, durr, num_frames / durr))
 
     print('starting training')
     for epoch in range(start_epoch, start_epoch + epochs):
-        sess.run([data_set_init, metric_reset_ops])
+        sess.run([dataset_init, metric_reset_ops])
         for train_step in range(1, steps_per_epoch + 1):
             # fetch the next batch of features and labels
             feature, label = sess.run([dataset_feature, dataset_label])
