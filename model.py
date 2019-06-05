@@ -33,7 +33,7 @@ class FuseModel:
         motion_frame = motions_input
         motion_frame = tf.reshape(motion_frame, shape=[-1] + image_shape + [2], name='motion_frame_collapse')
 
-        filters = [32, 64, 128, 256, 512]
+        filters = [32, 64, 64, 64, 64]
         poolings = [False, True, True, True, True]
         activations = ['linear', 'relu', 'relu', 'relu', 'relu']
         motion_conv = motion_frame
@@ -43,7 +43,8 @@ class FuseModel:
             motion_conv = Conv2D(filters=num_filter, kernel_size=3, padding='same', activation=activation,
                                  kernel_initializer=default_init, activity_regularizer=l2_reg,
                                  name='motion_conv_{}'.format(i))(motion_conv)
-        motion_conv = AveragePooling2D(strides=2)(motion_conv)
+        motion_conv = Conv2D(filters=64, kernel_size=3, strides=2, padding='same', activation='relu',
+                             kernel_initializer=default_init, activity_regularizer=l2_reg)(motion_conv)
 
         fused_frame = Concatenate()([image_conv, motion_conv])
         fused_frame = Conv2D(filters=512, kernel_size=1, kernel_initializer=default_init, activity_regularizer=l2_reg,
