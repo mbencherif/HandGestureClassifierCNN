@@ -58,10 +58,10 @@ class FuseModel:
 
         frames = tf.reshape(fused_frame, [self.batch_size, -1] + fused_frame.shape.as_list()[1:],
                             name='frame_expand')
-        frames = Conv3D(filters=512, kernel_size=3, padding='same',
+        frames = Conv3D(filters=64, kernel_size=1, padding='same',
                         kernel_initializer=default_init, activity_regularizer=l2_reg,
                         name='conv3d_1')(frames)
-        frames = Conv3D(filters=256, kernel_size=3, padding='same',
+        frames = Conv3D(filters=32, kernel_size=3, padding='same',
                         kernel_initializer=default_init, activity_regularizer=l2_reg,
                         name='conv3d_2')(frames)
 
@@ -69,9 +69,9 @@ class FuseModel:
         size = size[2] * size[3] * size[4]
         flattened = tf.reshape(frames, [self.batch_size, -1, size], name='flatten')
 
-        dense = Dense(1024, activation='relu', kernel_initializer=default_init, activity_regularizer=l2_reg,
+        dense = Dense(256, activation='relu', kernel_initializer=default_init, activity_regularizer=l2_reg,
                       name='FC_1')(flattened)
-        dense = LSTM(128, name='LSMT_1')(dense)
+        dense = LSTM(128, name='LSMT_1', stateful=False)(dense)
         logits = Dense(self.output_size, name='FC_final')(dense)
 
         return logits
