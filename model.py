@@ -12,11 +12,12 @@ from tensorflow.python.ops import rnn, rnn_cell
 
 
 class FuseModel:
-    def __init__(self, images_input, motions_input, output_size, batch_size=2, summarize_weights=False):
+    def __init__(self, images_input, motions_input, output_size, batch_size=2, summarize_weights=False, stateful=False):
         self.image_input = images_input
         self.motions_input = motions_input
         self.output_size = output_size
         self.batch_size = batch_size
+        self.stateful = stateful
         self.summarize_weights = summarize_weights
         self.prediction = self.prediction(images_input, motions_input)
 
@@ -65,7 +66,7 @@ class FuseModel:
 
         dense = Dense(256, activation='relu', kernel_initializer=default_init, activity_regularizer=l2_reg,
                       name='FC_1')(flattened)
-        dense = LSTM(128, name='LSMT_1', stateful=False)(dense)
+        dense = LSTM(128, name='LSMT_1', stateful=self.stateful)(dense)
         logits = Dense(self.output_size, name='FC_final')(dense)
 
         return logits
