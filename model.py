@@ -1,10 +1,12 @@
-import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Dense,\
     MaxPooling2D, GlobalAveragePooling2D, AveragePooling2D,\
     Add, Multiply, Concatenate, Flatten,\
     LSTM
+from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.initializers import glorot_normal
+import tensorflow as tf
+
 
 from tensorflow.python.ops import rnn, rnn_cell
 
@@ -19,36 +21,39 @@ class FuseModel:
         self.prediction = self.prediction(images_input, motions_input)
 
     def prediction(self, images_input, motions_input):
-        image_shape = list(images_input.shape[2:4])
+        image_shape = list(images_input.shape.as_list()[2:4])
 
         l2_reg = l2(10**(-9))
         default_init = glorot_normal(seed=None)
 
-        images_input = tf.reshape(images_input, shape=[-1] + image_shape + [3])
-        motions_input = tf.reshape(motions_input, shape=[-1] + image_shape + [2])
-
-        images_input = Conv2D(filters=4, kernel_size=1, strides=1, padding='same',
-                              activation='linear', kernel_initializer=default_init,
-                              use_bias=False, name='images_pre_conv_1')(images_input)
-        motions_input = Conv2D(filters=4, kernel_size=1, strides=1, padding='same',
-                               activation='linear', kernel_initializer=default_init,
-                               use_bias=False, name='motions_pre_conv_2')(motions_input)
-
         frame = Concatenate()([images_input, motions_input])
-        fused = SingleFrameModel(frame)
-        fused = fused.prediction
+        frame = tf.reshape(frame, shape=[-1] + image_shape + [5])
+        frame = Conv2D(filters=32, kernel_size=3, strides=1, padding='same',
+                       activation='relu', kernel_initializer=default_init,
+                       use_bias=True, name='frame_pre_conv_1')(frame)
+        frame = Conv2D(filters=64, kernel_size=3, strides=1, padding='same',
+                       activation='relu', kernel_initializer=default_init,
+                       use_bias=True, name='frame_pre_conv_2')(frame)
+        frame = Conv2D(filters=3, kernel_size=3, strides=1, padding='same',
+                       activation='linear', kernel_initializer=default_init,
+                       use_bias=False, name='frame_pre_conv_3')(frame)
 
-        fused = AveragePooling2D(2, strides=2, padding='valid', name='fused_pool')(fused)
+        base_model = MobileNetV2(input_shape=image_shape + [3],
+                                 include_top=False,
+                                 weights='imagenet')
+        base_model.trainable = False
+        # base_model.summary()
+
+        fused = base_model(frame)
 
         size = fused.shape[1] * fused.shape[2] * fused.shape[3]
         # flatten
         lstm_input = tf.reshape(fused, shape=[self.batch_size, -1, size], name='flatten')
-        lstm_input = Dense(1024, name='lstm_input_condense')(lstm_input)
+        lstm_input = Dense(2048, name='lstm_input_dense')(lstm_input)
 
-        # [batch, frames, 2048]
         lstm1 = lstm_input
-        lstm_depths = [1024, 1024, 512]
-        return_sequences = [True, True, False]
+        lstm_depths = [2048]
+        return_sequences = [False]
         for i, (depth, return_sequence) in enumerate(zip(lstm_depths, return_sequences)):
             lstm1 = LSTM(depth, stateful=True, return_sequences=return_sequence,
                          kernel_initializer=default_init,

@@ -50,12 +50,12 @@ class DataPipeline:
             old_size = images[0].shape[:2]
             resize_height = old_size[0] / old_size[1] > self.image_size[0] / self.image_size[1]
             if resize_height:
-                new_size = (self.image_size[0], self.image_size[0] // old_size[0] * old_size[1])
+                new_size = (self.image_size[0], int(self.image_size[0] / old_size[0] * old_size[1]))
                 d_pad = self.image_size[1] - new_size[1]
                 padding_l = d_pad // 2
                 padding_r = d_pad - padding_l
             else:
-                new_size = (self.image_size[1] // old_size[1] * old_size[0], self.image_size[1])
+                new_size = (int(self.image_size[1] / old_size[1] * old_size[0]), self.image_size[1])
                 d_pad = self.image_size[0] - new_size[0]
                 padding_l = d_pad // 2
                 padding_r = d_pad - padding_l

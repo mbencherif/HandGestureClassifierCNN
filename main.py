@@ -89,7 +89,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     save_dir = os.path.join(model_name, save_dir)
     log_dir = os.path.join(model_name, log_dir)
 
-    image_shape = [144, 256]
+    image_shape = [160, 160]
 
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
@@ -121,7 +121,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     loss_op = get_loss(model_output, y_actual_placeholder)
 
     print('creating optimizers')
-    optimizer = get_optimizer(loss_op, lr=0.001, opt='rmsprop')
+    optimizer = get_optimizer(loss_op, lr=0.001, opt='adam')
 
     print('creating metrics')
     metric_calc_ops = list()
@@ -201,7 +201,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
         num_frames = 0
         durr = 0
         sess.run(data_set_init)
-        for _ in range(8):
+        for _ in range(20):
             feature, label = sess.run([dataset_feature, dataset_label])
             images = feature['images']
             flows = feature['flows']
@@ -233,7 +233,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
             print('Epoch {} step {}/{}\tloss - {:.2f}, {}'.format(epoch, train_step, steps_per_epoch,
                                                                   loss, metric_string))
 
-            if global_step % save_freq == 0:
+            if global_step > 0 and global_step % save_freq == 0:
                 # save model
                 print('saving model...')
                 save_location = os.path.join(save_dir, model_name)
@@ -293,7 +293,7 @@ if __name__ == '__main__':
             break
     else:
         base_location = '/home/yliu102199'
-    start_training(data_location=base_location, log_dir='log', save_dir='saved_models', model_name='model_3',
+    start_training(data_location=base_location, log_dir='log', save_dir='saved_models', model_name='model_1',
                    steps_per_epoch=20000, val_steps=32, start_epoch=0, epochs=1000, global_step=0,
                    summary_update_freq=30, val_freq=200, save_freq=500,
-                   batch_size=2)
+                   batch_size=1)
