@@ -58,7 +58,7 @@ class FuseModel:
 
         frames = tf.reshape(fused_frame, [self.batch_size, -1] + fused_frame.shape.as_list()[1:],
                             name='frame_expand')
-        frames = Conv3D(filters=64, kernel_size=1, padding='same',
+        frames = Conv3D(filters=64, kernel_size=(7, 1, 1), padding='same',
                         kernel_initializer=default_init, activity_regularizer=l2_reg,
                         name='conv3d_1')(frames)
         frames = Conv3D(filters=32, kernel_size=3, padding='same',
