@@ -214,7 +214,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     num_frames = 0
     durr = 0
     sess.run(dataset_init)
-    for _ in range(20):
+    for _ in range(20//batch_size):
         feature, label = sess.run([dataset_feature, dataset_label])
         images = feature['images']
         flows = feature['flows']
