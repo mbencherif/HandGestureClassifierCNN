@@ -31,12 +31,9 @@ class FuseModel:
         frame = Conv2D(filters=32, kernel_size=3, strides=1, padding='same',
                        activation='relu', kernel_initializer=default_init,
                        use_bias=True, name='frame_pre_conv_1')(frame)
-        frame = Conv2D(filters=64, kernel_size=3, strides=1, padding='same',
-                       activation='relu', kernel_initializer=default_init,
-                       use_bias=True, name='frame_pre_conv_2')(frame)
         frame = Conv2D(filters=3, kernel_size=3, strides=1, padding='same',
                        activation='linear', kernel_initializer=default_init,
-                       use_bias=False, name='frame_pre_conv_3')(frame)
+                       use_bias=False, name='frame_pre_conv_2')(frame)
 
         base_model = MobileNetV2(input_shape=image_shape + [3],
                                  include_top=False,

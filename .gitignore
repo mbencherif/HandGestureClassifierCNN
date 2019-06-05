@@ -1,0 +1,15 @@
+# Emacs
+*~
+
+# Mac OS
+.DS_Store
+
+# Pycharm
+.idea/*
+
+# Python
+__pycache__/*
+venv/*
+
+# Models
+model_*/*
