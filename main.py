@@ -91,7 +91,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
 
     # Default: 1280 x 720
     # [Rows, Columns]
-    image_shape = [72, 128]
+    image_shape = [144, 256]
 
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
