@@ -16,6 +16,8 @@ def resize_folder(folder):
         image = cv2.imread(image_file)
         images.append(image)
     old_size = images[0].shape[:2]
+    if old_size == image_size:
+        return
     resize_height = old_size[0] / old_size[1] > image_size[0] / image_size[1]
     if resize_height:
         new_size = (image_size[0], int(image_size[0] / old_size[0] * old_size[1]))
@@ -68,26 +70,19 @@ def resize_images(home_path="/home/yliu102199"):
 
     feature_labels.reverse()
     validation_feature_labels.reverse()
-    with Pool(24) as pool:
-        print("Resizing training images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, feature_labels)):
-            sys.stdout.write('\rDone... {0:%}'.format(i / len(feature_labels)))
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+    print("Resizing training images")
+    for i, _ in enumerate(map(resize_folder, feature_labels)):
+        sys.stdout.write('\rDone... {0:%}'.format(i / len(feature_labels)))
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
-        print("Resizing validation images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, validation_feature_labels)):
-            sys.stdout.write('\rDone... {0:%}'.format(i / len(validation_feature_labels)))
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+    print("Resizing validation images")
+    for i, _ in enumerate(map(resize_folder, validation_feature_labels)):
+        sys.stdout.write('\rDone... {0:%}'.format(i / len(validation_feature_labels)))
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
-        # print("Resizing test images")
-        # for i, _ in enumerate(pool.imap_unordered(resize_folder, test_feature_labels)):
-        #     sys.stdout.write('\rDone... {0:%}'.format(i / len(test_feature_labels)))
-        # sys.stdout.write('\n')
-        # sys.stdout.flush()
-
-        print("Done")
+    print("Done")
 
 
 if __name__ == '__main__':
