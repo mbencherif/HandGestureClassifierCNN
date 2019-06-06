@@ -89,6 +89,6 @@ def resize_images(home_path="/home/yliu102199"):
 
 
 if __name__ == '__main__':
-    image_size = [256, 256]
-    resize_images(home_path='./SampleDataset')
-    # resize_images(home_path='/home/yliu102199')
+    image_size = [144, 256]
+    # resize_images(home_path='./SampleDataset')
+    resize_images(home_path='/home/yliu102199')
