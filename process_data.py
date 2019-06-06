@@ -46,7 +46,7 @@ def resize_images(home_path="/home/yliu102199"):
 
     train_labels_file = os.path.join(home_path, "DataSets/train.csv")
     validation_labels_file = os.path.join(home_path, "DataSets/validation.csv")
-    test_labels_file = os.path.join(home_path, "DataSets/test.csv")
+    # test_labels_file = os.path.join(home_path, "DataSets/test.csv")
 
     feature_labels = list()
     with open(train_labels_file, 'r') as train_csv:
@@ -60,11 +60,11 @@ def resize_images(home_path="/home/yliu102199"):
             folder_name, _ = line.split(";", maxsplit=2)
             validation_feature_labels.append(os.path.join(dataset_base, folder_name))
 
-    test_feature_labels = list()
-    with open(test_labels_file, 'r') as test_csv:
-        for line in test_csv:
-            folder_name, _ = line.split(";", maxsplit=2)
-            test_feature_labels.append(os.path.join(dataset_base, folder_name))
+    # test_feature_labels = list()
+    # with open(test_labels_file, 'r') as test_csv:
+    #     for line in test_csv:
+    #         folder_name, _ = line.split(";", maxsplit=2)
+    #         test_feature_labels.append(os.path.join(dataset_base, folder_name))
 
     with Pool(48) as pool:
         print("Resizing training images")
@@ -79,11 +79,11 @@ def resize_images(home_path="/home/yliu102199"):
         sys.stdout.write('\n')
         sys.stdout.flush()
 
-        print("Resizing test images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, test_feature_labels)):
-            sys.stdout.write('\rDone... {0:%}'.format(i / len(test_feature_labels)))
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+        # print("Resizing test images")
+        # for i, _ in enumerate(pool.imap_unordered(resize_folder, test_feature_labels)):
+        #     sys.stdout.write('\rDone... {0:%}'.format(i / len(test_feature_labels)))
+        # sys.stdout.write('\n')
+        # sys.stdout.flush()
 
         print("Done")
 
