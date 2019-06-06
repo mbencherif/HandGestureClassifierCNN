@@ -3,6 +3,7 @@ import glob
 from multiprocessing import Pool
 import numpy as np
 import cv2
+import sys
 
 image_size = None
 
@@ -65,17 +66,29 @@ def resize_images(home_path="/home/yliu102199"):
             folder_name, _ = line.split(";", maxsplit=2)
             test_feature_labels.append(os.path.join(dataset_base, folder_name))
 
-    with Pool(32) as pool:
+    with Pool(48) as pool:
         print("Resizing training images")
-        pool.map(resize_folder, feature_labels)
+        for i, _ in enumerate(pool.imap_unordered(resize_folder, feature_labels)):
+            sys.stdout.write('\rDone... {0:%}'.format(i / len(feature_labels)))
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
         print("Resizing validation images")
-        pool.map(resize_folder, validation_feature_labels)
+        for i, _ in enumerate(pool.imap_unordered(resize_folder, validation_feature_labels)):
+            sys.stdout.write('\rDone... {0:%}'.format(i / len(validation_feature_labels)))
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
         print("Resizing test images")
-        pool.map(resize_folder, test_feature_labels)
+        for i, _ in enumerate(pool.imap_unordered(resize_folder, test_feature_labels)):
+            sys.stdout.write('\rDone... {0:%}'.format(i / len(test_feature_labels)))
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+
+        print("Done")
 
 
 if __name__ == '__main__':
-    image_size = [144, 256]
-    resize_images(home_path='/home/yliu102199')
+    image_size = [256, 256]
+    resize_images(home_path='./SampleDataset')
+    # resize_images(home_path='/home/yliu102199')

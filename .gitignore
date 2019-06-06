@@ -13,5 +13,5 @@ venv/*
 
 # Models
 model_*/*
-TestData/*
+SampleDataset/*
 download_models.sh
