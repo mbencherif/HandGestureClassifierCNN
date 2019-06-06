@@ -72,13 +72,13 @@ def resize_images(home_path="/home/yliu102199"):
     validation_feature_labels.reverse()
     with Pool(16) as pool:
         print("Resizing training images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, feature_labels, 64)):
+        for i, _ in enumerate(pool.imap_unordered(resize_folder, feature_labels, 16)):
             sys.stdout.write('\rDone... {0:%}'.format(i / len(feature_labels)))
         sys.stdout.write('\n')
         sys.stdout.flush()
 
         print("Resizing validation images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, validation_feature_labels, 64)):
+        for i, _ in enumerate(pool.imap_unordered(resize_folder, validation_feature_labels, 16)):
             sys.stdout.write('\rDone... {0:%}'.format(i / len(validation_feature_labels)))
         sys.stdout.write('\n')
         sys.stdout.flush()
