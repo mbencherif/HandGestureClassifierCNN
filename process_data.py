@@ -68,17 +68,15 @@ def resize_images(home_path="/home/yliu102199"):
     #         folder_name, _ = line.split(";", maxsplit=2)
     #         test_feature_labels.append(os.path.join(dataset_base, folder_name))
 
-    feature_labels.reverse()
-    validation_feature_labels.reverse()
     with Pool(16) as pool:
         print("Resizing training images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, feature_labels, 16)):
+        for i, _ in enumerate(pool.map(resize_folder, feature_labels, 16)):
             sys.stdout.write('\rDone... {0:%}'.format(i / len(feature_labels)))
         sys.stdout.write('\n')
         sys.stdout.flush()
 
         print("Resizing validation images")
-        for i, _ in enumerate(pool.imap_unordered(resize_folder, validation_feature_labels, 16)):
+        for i, _ in enumerate(pool.map(resize_folder, validation_feature_labels, 16)):
             sys.stdout.write('\rDone... {0:%}'.format(i / len(validation_feature_labels)))
         sys.stdout.write('\n')
         sys.stdout.flush()
