@@ -12,16 +12,14 @@ from tensorflow.python.ops import rnn, rnn_cell
 
 
 class FuseModel:
-    def __init__(self, images_input, motions_input, output_size, batch_size=2, summarize_weights=False, stateful=False):
+    def __init__(self, images_input, output_size, batch_size=2, summarize_weights=False):
         self.image_input = images_input
-        self.motions_input = motions_input
         self.output_size = output_size
         self.batch_size = batch_size
-        self.stateful = stateful
         self.summarize_weights = summarize_weights
-        self.prediction = self.prediction(images_input, motions_input)
+        self.prediction = self.make_prediction(images_input)
 
-    def prediction(self, images_input, motions_input):
+    def make_prediction(self, images_input):
         image_shape = list(images_input.shape.as_list()[2:4])
 
         l2_reg = l2(10**(-9))
@@ -31,26 +29,7 @@ class FuseModel:
         image_frame = tf.reshape(image_frame, shape=[-1] + image_shape + [3], name='image_frame_collapse')
         image_conv = BaseImageModel(image_frame).prediction
 
-        motion_frame = motions_input
-        motion_frame = tf.reshape(motion_frame, shape=[-1] + image_shape + [2], name='motion_frame_collapse')
-
-        filters = [32, 64, 64, 64, 64]
-        poolings = [False, True, True, True, True]
-        activations = ['linear', 'relu', 'relu', 'relu', 'relu']
-        motion_conv = motion_frame
-        for i, (num_filter, pooling, activation) in enumerate(zip(filters, poolings, activations)):
-            if pooling:
-                motion_conv = MaxPooling2D(strides=2)(motion_conv)
-            motion_conv = Conv2D(filters=num_filter, kernel_size=3, padding='same', activation=activation,
-                                 kernel_initializer=default_init, activity_regularizer=l2_reg,
-                                 name='motion_conv_{}'.format(i))(motion_conv)
-        motion_conv = Conv2D(filters=64, kernel_size=3, strides=2, padding='same', activation='relu',
-                             kernel_initializer=default_init, activity_regularizer=l2_reg)(motion_conv)
-
-        fused_frame = Concatenate()([image_conv, motion_conv])
-        fused_frame = Conv2D(filters=512, kernel_size=1, kernel_initializer=default_init, activity_regularizer=l2_reg,
-                             name="fused_frame_compress")(fused_frame)
-
+        fused_frame = image_conv
         frames = tf.reshape(fused_frame, [self.batch_size, -1] + fused_frame.shape.as_list()[1:],
                             name='frame_expand')
         frames = Conv3D(filters=128, kernel_size=(7, 1, 1), padding='valid',
@@ -66,9 +45,9 @@ class FuseModel:
 
         dense = Dense(256, activation='relu', kernel_initializer=default_init, activity_regularizer=l2_reg,
                       name='FC_1')(flattened)
-        dense = LSTM(128, name='LSMT_1', stateful=self.stateful)(dense)
         logits = Dense(self.output_size, name='FC_final')(dense)
 
+        logits = tf.reduce_mean(logits, axis=1, name='average')
         return logits
 
 

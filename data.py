@@ -48,47 +48,8 @@ class DataPipeline:
                 image = cv2.imread(image_file)
                 images.append(image)
             old_size = images[0].shape[:2]
-            resize_height = old_size[0] / old_size[1] > self.image_size[0] / self.image_size[1]
-            if resize_height:
-                new_size = (self.image_size[0], int(self.image_size[0] / old_size[0] * old_size[1]))
-                d_pad = self.image_size[1] - new_size[1]
-                padding_l = d_pad // 2
-                padding_r = d_pad - padding_l
-            else:
-                new_size = (int(self.image_size[1] / old_size[1] * old_size[0]), self.image_size[1])
-                d_pad = self.image_size[0] - new_size[0]
-                padding_l = d_pad // 2
-                padding_r = d_pad - padding_l
-            for i in range(len(images)):
-                image = images[i]
-                images[i] = cv2.resize(image, dsize=(new_size[1], new_size[0]))
+            assert (old_size == [144, 256])
             images = np.array(images, dtype=np.float32)
-
-            images_gray = np.zeros(images.shape[:-1])
-            for i in range(images.shape[0]):
-                images_gray[i] = cv2.cvtColor(images[i], cv2.COLOR_RGB2GRAY)
-            motion_flow = list()
-            for i in range(images.shape[0]):
-                n = min(i + 1, images.shape[0] - 1)
-                im1 = images_gray[i]
-                im2 = images_gray[n]
-                # prev, next, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags[, flow])
-                new_flow = cv2.calcOpticalFlowFarneback(im1, im2, flow=None, pyr_scale=0.5, levels=4,
-                                                        winsize=25, iterations=3, poly_n=7, poly_sigma=1.2,
-                                                        flags=0)
-                new_flow[:, :, 0] -= new_flow[:, :, 0].mean()
-                new_flow[:, :, 1] -= new_flow[:, :, 1].mean()
-                mag = np.sum(new_flow * new_flow, axis=2) ** 0.5
-                new_flow /= mag.std()
-                motion_flow.append(new_flow)
-            motion_flow = np.array(motion_flow)
-
-            if resize_height:
-                images = np.pad(images, [(0, 0), (0, 0), (padding_l, padding_r), (0, 0)], 'constant')
-                motion_flow = np.pad(motion_flow, [(0, 0), (0, 0), (padding_l, padding_r), (0, 0)], 'constant')
-            else:
-                images = np.pad(images, [(0, 0), (padding_l, padding_r), (0, 0), (0, 0)], 'constant')
-                motion_flow = np.pad(motion_flow, [(0, 0), (padding_l, padding_r), (0, 0), (0, 0)], 'constant')
 
             images /= 255.0
 
@@ -97,16 +58,13 @@ class DataPipeline:
             frames_to_remove = num_frames - 35
             if frames_to_remove < 0:
                 images_pad = np.zeros([-frames_to_remove] + list(images.shape[1:]), dtype=np.float32)
-                motion_flow_pad = np.zeros([-frames_to_remove] + list(motion_flow.shape[1:]), dtype=np.float32)
                 images = np.concatenate([images_pad, images], axis=0)
-                motion_flow = np.concatenate([motion_flow_pad, motion_flow], axis=0)
             elif frames_to_remove > 0:
                 front_remove = 4 * frames_to_remove // 5
                 back_remove = frames_to_remove - front_remove
                 images = images[front_remove:-back_remove, :, :, :]
-                motion_flow = motion_flow[front_remove:-back_remove, :, :, :]
 
-            return {'images': images, 'flows': motion_flow}
+            return images
 
         def one_hot_label(label):
             i = self.labels.index(label)
