@@ -10,8 +10,8 @@ import numpy as np
 import time
 
 
-def build_model(images_input, motions_input, num_classes, batch_size):
-    fused_model = FuseModel(images_input, motions_input, output_size=num_classes, batch_size=batch_size)
+def build_model(images_input, num_classes, batch_size):
+    fused_model = FuseModel(images_input, output_size=num_classes, batch_size=batch_size)
     return fused_model.prediction
 
 
@@ -65,7 +65,7 @@ def correct_pred_val(y_pred_logits, y_true, val=False):
 
 def get_dataset(generator, batch_size=1, val=False):
     d = tf.data.Dataset.from_generator(generator,
-                                       output_types=({'images': tf.float32, 'flows': tf.float32}, tf.float32))
+                                       output_types=(tf.float32, tf.float32))
     d = d.shuffle(buffer_size=32, reshuffle_each_iteration=True)
     if val:
         d = d.repeat()
@@ -89,7 +89,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     save_dir = os.path.join(model_name, save_dir)
     log_dir = os.path.join(model_name, log_dir)
 
-    # Default: 1280 x 720
+    # Default: 144 x 256
     # [Rows, Columns]
     image_shape = [144, 256]
 
@@ -97,19 +97,19 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
 
     d = None
     dataset_init = None
-    dataset_feature = None
+    dataset_images = None
     dataset_label = None
+    val_dataset_images = None
+    val_dataset_label = None
     try:
         print('creating dataset pipeline')
         d = DataPipeline(sess, image_shape, home_path=data_location)
         num_classes = d.num_classes()
-        dataset_init, (dataset_feature, dataset_label) = get_dataset(d.generator, batch_size=batch_size)
-        val_dataset_feature, val_dataset_label = get_dataset(d.val_generator, batch_size=batch_size,
-                                                             val=True)
-        dataset_feature['images'].set_shape([batch_size, None] + image_shape + [3])
-        dataset_feature['flows'].set_shape([batch_size, None] + image_shape + [2])
-        val_dataset_feature['images'].set_shape([batch_size, None] + image_shape + [3])
-        val_dataset_feature['flows'].set_shape([batch_size, None] + image_shape + [2])
+        dataset_init, (dataset_images, dataset_label) = get_dataset(d.generator, batch_size=batch_size)
+        val_dataset_images, val_dataset_label = get_dataset(d.val_generator, batch_size=batch_size,
+                                                            val=True)
+        dataset_images.set_shape([batch_size, None] + image_shape + [3])
+        val_dataset_images.set_shape([batch_size, None] + image_shape + [3])
     except FileNotFoundError:
         print("Training files not found. Executing under fake dataset")
         num_classes = 27
@@ -117,15 +117,13 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     print('creating placeholders')
     images_placeholder = tf.placeholder(tf.float32, shape=[batch_size, None] + image_shape + [3],
                                         name='images_placeholder')
-    flows_placeholder = tf.placeholder(tf.float32, shape=[batch_size, None] + image_shape + [2],
-                                       name='flows_placeholder')
     prediction_placeholder = tf.placeholder(tf.float32, shape=[batch_size, num_classes],
                                             name='prediction_placeholder')
     y_actual_placeholder = tf.placeholder(tf.float32, shape=[batch_size, num_classes],
                                           name='y_actual_placeholder')
 
     print('constructing fused model')
-    model_output = build_model(images_placeholder, flows_placeholder, num_classes, batch_size)
+    model_output = build_model(images_placeholder, num_classes, batch_size)
 
     print('creating loss')
     loss_op = get_loss(model_output, y_actual_placeholder)
@@ -215,12 +213,10 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     durr = 0
     sess.run(dataset_init)
     for _ in range(20//batch_size):
-        feature, label = sess.run([dataset_feature, dataset_label])
-        images = feature['images']
-        flows = feature['flows']
+        images, label = sess.run([dataset_images, dataset_label])
         num_frames += images.shape[1] * images.shape[0]
         start_time = time.time()
-        sess.run(model_output, feed_dict={images_placeholder: images, flows_placeholder: flows})
+        sess.run(model_output, feed_dict={images_placeholder: images})
         durr += time.time() - start_time
     print('processed {} frames in {} seconds; {:.01f} fps'.format(num_frames, durr, num_frames / durr))
 
@@ -229,13 +225,11 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
         sess.run([dataset_init, metric_reset_ops])
         for train_step in range(1, steps_per_epoch + 1):
             # fetch the next batch of features and labels
-            feature, label = sess.run([dataset_feature, dataset_label])
-            images = feature['images']
-            flows = feature['flows']
+            images, label = sess.run([dataset_images, dataset_label])
 
             # run a single iteration of training, loss, and optimization
             _, loss, prediction = sess.run([optimizer, loss_op, model_output],
-                                           feed_dict={images_placeholder: images, flows_placeholder: flows,
+                                           feed_dict={images_placeholder: images,
                                                       y_actual_placeholder: label})
 
             # evaluate the metrics
@@ -268,13 +262,11 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
                 sess.run(val_metric_reset_ops)
                 for val_step in range(val_steps):
                     # fetch the next batch of features and labels
-                    feature, label = sess.run([val_dataset_feature, val_dataset_label])
-                    images = feature['images']
-                    flows = feature['flows']
+                    images, label = sess.run([val_dataset_images, val_dataset_label])
 
                     # run a single iteration of training, loss, and optimization
                     loss, prediction = sess.run([loss_op, model_output],
-                                                feed_dict={images_placeholder: images, flows_placeholder: flows,
+                                                feed_dict={images_placeholder: images,
                                                            y_actual_placeholder: label})
 
                     # evaluate the metrics
