@@ -67,7 +67,6 @@ def correct_pred_val(y_pred_logits, y_true, val=False):
 def get_dataset(generator, batch_size=1, val=False):
     d = tf.data.Dataset.from_generator(generator,
                                        output_types=(tf.float32, tf.float32))
-    d = d.shuffle(buffer_size=32, reshuffle_each_iteration=True)
     if val:
         d = d.repeat()
     d = d.batch(batch_size)
