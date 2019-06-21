@@ -81,8 +81,8 @@ class DataPipeline:
             return imgs_flows_from_folder(feature), one_hot_label(label)
 
         def generator():
-            with multiprocessing.Pool(14) as pool:
-                return pool.imap_unordered(process_feature_label, self.feature_labels)
+            for feature in self.feature_labels:
+                yield process_feature_label(feature_label=feature)
 
         def val_generator():
             while True:
