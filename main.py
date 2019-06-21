@@ -31,8 +31,15 @@ def get_optimizer(loss, lr=0.001, opt='adam', **kwargs):
         'rmsprop': tf.train.RMSPropOptimizer
     }
     optimizer = optimizers[opt.lower()](learning_rate=lr, **kwargs)
-    train_op = optimizer.minimize(loss, name='optimizer_update_op')
-    return train_op
+    # train_op = optimizer.minimize(loss, name='optimizer_update_op')
+
+    gradients, variables = zip(*optimizer.compute_gradients(loss))
+    gradients = [
+        None if gradient is None else tf.clip_by_norm(gradient, 5.0)
+        for gradient in gradients]
+    optimize = optimizer.apply_gradients(zip(gradients, variables))
+
+    return optimize
 
 
 def get_accuracy(y_pred_logits, y_true, val=False):
