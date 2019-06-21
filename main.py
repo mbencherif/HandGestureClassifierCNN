@@ -69,6 +69,7 @@ def get_dataset(generator, batch_size=1, val=False):
                                        output_types=(tf.float32, tf.float32))
     if val:
         d = d.repeat()
+    d = d.prefetch(buffer_size=16)
     d = d.batch(batch_size)
     if val:
         iterator = d.make_one_shot_iterator()
