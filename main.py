@@ -213,12 +213,11 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     num_frames = 0
     durr = 10.0**-9
     sess.run(dataset_init)
-    for _ in range(20//batch_size):
-        images, label = sess.run([dataset_images, dataset_label])
-        num_frames += images.shape[1] * images.shape[0]
-        start_time = time.time()
-        sess.run(model_output, feed_dict={images_placeholder: images})
-        durr += time.time() - start_time
+    images, label = sess.run([dataset_images, dataset_label])
+    num_frames += images.shape[1] * images.shape[0]
+    start_time = time.time()
+    sess.run(model_output, feed_dict={images_placeholder: images})
+    durr += time.time() - start_time
     print('processed {} frames in {} seconds; {:.01f} fps'.format(num_frames, durr, num_frames / durr))
 
     print('starting training')
