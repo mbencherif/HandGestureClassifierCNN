@@ -89,7 +89,7 @@ def get_dataset(generator, batch_size=1, val=False):
 def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved_models', model_name=None,
                    steps_per_epoch=2000, val_steps=16, start_epoch=0, epochs=100, global_step=0,
                    summary_update_freq=10, val_freq=200, save_freq=200,
-                   batch_size=1):
+                   batch_size=1, lr=10**-6):
     if model_name is None:
         model_name = 'default_model'
 
@@ -136,7 +136,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     loss_op = get_loss(model_output, y_actual_placeholder)
 
     print('creating optimizers')
-    optimizer = get_optimizer(loss_op, lr=10**-5, opt='adam')
+    optimizer = get_optimizer(loss_op, lr=lr, opt='adam')
 
     print('creating metrics')
     metric_calc_ops = list()
@@ -242,7 +242,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
             metrics = sess.run(metric_update_ops, feed_dict={prediction_placeholder: prediction,
                                                              y_actual_placeholder: label})
             metric_name_val = list(zip(metric_names, metrics))
-            metric_string = '  '.join(map(lambda x: '{} - {:.3f}'.format(*x), metric_name_val))
+            metric_string = '  '.join(map(lambda x: '{} - {:.4f}'.format(*x), metric_name_val))
             print('Epoch {} step {}/{}\tloss - {:.2f}, {}'.format(epoch, train_step, steps_per_epoch,
                                                                   loss, metric_string))
 
@@ -307,9 +307,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--batchsize', dest='batch_size', type=int,
                         default=8)
+    parser.add_argument('--lr', dest='lr', type=float,
+                        default=-6)
     results = parser.parse_args()
     print("Batch size set to: {}".format(results.batch_size))
+    print("Learning rate set to: {}".format(results.lr))
     start_training(data_location=base_location, log_dir='log', save_dir='saved_models', model_name='model_1',
                    steps_per_epoch=20000, val_steps=32, start_epoch=0, epochs=1000, global_step=0,
                    summary_update_freq=30, val_freq=200, save_freq=500,
-                   batch_size=results.batch_size)
+                   batch_size=results.batch_size, lr=10.0**results.lr)
