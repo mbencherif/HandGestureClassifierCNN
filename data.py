@@ -1,6 +1,7 @@
 import os
 import glob
 import random
+import multiprocessing
 
 import tensorflow as tf
 import numpy as np
@@ -80,8 +81,8 @@ class DataPipeline:
             return imgs_flows_from_folder(feature), one_hot_label(label)
 
         def generator():
-            for feature in self.feature_labels:
-                yield process_feature_label(feature_label=feature)
+            with multiprocessing.Pool(14) as pool:
+                return pool.imap_unordered(process_feature_label, self.feature_labels)
 
         def val_generator():
             while True:

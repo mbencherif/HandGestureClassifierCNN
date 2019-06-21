@@ -275,7 +275,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
                                                                          y_actual_placeholder: label})
 
                 metric_name_val = list(zip(metric_names, metrics))
-                metric_string = '  '.join(map(lambda x: '{} - {:.3f}'.format(*x), metric_name_val))
+                metric_string = '  '.join(map(lambda x: '{} - {:.4f}'.format(*x), metric_name_val))
                 print('Validation: Epoch {} step {}/{}\tloss - {:.2f}, {}'.format(epoch, train_step, steps_per_epoch,
                                                                                   loss, metric_string))
 
