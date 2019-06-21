@@ -3,6 +3,7 @@ import tensorflow as tf
 from data import DataPipeline
 from model import FuseModel
 
+import argparse
 import os
 import sys
 import cv2
@@ -298,7 +299,10 @@ if __name__ == '__main__':
             break
     else:
         base_location = '/home/yliu102199'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batchsize', dest='batch_size', default=8)
+    results = parser.parse_args()
     start_training(data_location=base_location, log_dir='log', save_dir='saved_models', model_name='model_1',
                    steps_per_epoch=20000, val_steps=32, start_epoch=0, epochs=1000, global_step=0,
                    summary_update_freq=30, val_freq=200, save_freq=500,
-                   batch_size=8)
+                   batch_size=results.batch_size)
