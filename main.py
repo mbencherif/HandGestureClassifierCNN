@@ -70,7 +70,6 @@ def get_dataset(generator, batch_size=1, val=False):
     if val:
         d = d.repeat()
     d = d.batch(batch_size)
-    d = d.prefetch(buffer_size=1)
     if val:
         iterator = d.make_one_shot_iterator()
         return iterator.get_next()
