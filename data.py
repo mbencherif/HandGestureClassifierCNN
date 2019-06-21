@@ -48,7 +48,9 @@ class DataPipeline:
                 image = cv2.imread(image_file)
                 images.append(image)
             old_size = images[0].shape[:2]
-            assert (old_size == [144, 256])
+            if old_size != [144, 256]:
+                print(old_size)
+
             images = np.array(images, dtype=np.float32)
 
             images /= 255.0
