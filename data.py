@@ -81,7 +81,8 @@ class DataPipeline:
             return imgs_flows_from_folder(feature), one_hot_label(label)
 
         def generator():
-            for feature in self.feature_labels:
+            while True:
+                feature = random.choice(self.feature_labels)
                 yield process_feature_label(feature_label=feature)
 
         def val_generator():
