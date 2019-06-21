@@ -136,7 +136,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
     loss_op = get_loss(model_output, y_actual_placeholder)
 
     print('creating optimizers')
-    optimizer = get_optimizer(loss_op, lr=0.01, opt='adam')
+    optimizer = get_optimizer(loss_op, lr=10**-5, opt='adam')
 
     print('creating metrics')
     metric_calc_ops = list()
