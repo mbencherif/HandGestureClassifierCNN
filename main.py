@@ -211,7 +211,7 @@ def start_training(data_location='/Users/Yuhan', log_dir='log1', save_dir='saved
 
     print('testing speed')
     num_frames = 0
-    durr = 0
+    durr = 10.0**-9
     sess.run(dataset_init)
     for _ in range(20//batch_size):
         images, label = sess.run([dataset_images, dataset_label])
