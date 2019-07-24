@@ -306,13 +306,13 @@ if __name__ == '__main__':
         base_location = '/home/yliu102199'
     parser = argparse.ArgumentParser()
     parser.add_argument('--batchsize', dest='batch_size', type=int,
-                        default=8)
+                        default=16)
     parser.add_argument('--lr', dest='lr', type=float,
                         default=-6)
     results = parser.parse_args()
     print("Batch size set to: {}".format(results.batch_size))
     print("Learning rate set to: {}".format(results.lr))
     start_training(data_location=base_location, log_dir='log', save_dir='saved_models', model_name='model_1',
-                   steps_per_epoch=20000, val_steps=32, start_epoch=0, epochs=1000, global_step=0,
+                   steps_per_epoch=20000, val_steps=4, start_epoch=0, epochs=1000, global_step=0,
                    summary_update_freq=30, val_freq=200, save_freq=500,
                    batch_size=results.batch_size, lr=10.0**results.lr)
