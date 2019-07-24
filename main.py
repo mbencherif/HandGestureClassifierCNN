@@ -308,7 +308,7 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize', dest='batch_size', type=int,
                         default=16)
     parser.add_argument('--lr', dest='lr', type=float,
-                        default=-6)
+                        default=-3)
     results = parser.parse_args()
     print("Batch size set to: {}".format(results.batch_size))
     print("Learning rate set to: {}".format(results.lr))
